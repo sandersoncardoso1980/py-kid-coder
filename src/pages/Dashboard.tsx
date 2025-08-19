@@ -148,6 +148,7 @@ export default function Dashboard() {
                   key={index} 
                   variant={action.variant}
                   className="cursor-pointer"
+                  onClick={() => window.location.href = action.path}
                 >
                   <div className="text-center space-y-2">
                     <Icon className="w-8 h-8 mx-auto" />
