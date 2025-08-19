@@ -43,55 +43,31 @@ export default function ChatScreen() {
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const currentInput = inputMessage;
     setInputMessage("");
     setIsTyping(true);
 
-    try {
-      // Chamada para o Professor Sandero via GROQ API
-      const { supabase } = await import("@/integrations/supabase/client");
-      
-      const { data, error } = await supabase.functions.invoke('professor-chat', {
-        body: {
-          message: currentInput,
-          messages: messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-          }))
-        }
-      });
+    // Simulação de resposta do Professor Sandero
+    setTimeout(() => {
+      const responses = [
+        "Que pergunta interessante! 🐍 Em Python, você pode usar a função print() para mostrar mensagens na tela. Por exemplo: print('Olá, mundo!')",
+        "Ótima dúvida! Python é uma linguagem muito amigável para iniciantes. Vamos começar com variáveis: nome = 'João' cria uma variável chamada nome!",
+        "Excelente! Os loops são muito úteis em Python. O loop 'for' nos ajuda a repetir ações. Exemplo: for i in range(5): print(i)",
+        "Muito bem! As listas em Python são como caixas que guardam vários itens. Exemplo: frutas = ['maçã', 'banana', 'laranja']",
+        "Python é divertido! 🎉 Que tal criarmos um pequeno jogo? Podemos fazer um programa que adivinha números!"
+      ];
 
-      if (error) {
-        console.error('Erro ao chamar função:', error);
-        throw new Error('Erro de conexão com o Professor Sandero');
-      }
-
-      const assistantMessage = data?.message || 'Desculpe, não consegui processar sua pergunta.';
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: assistantMessage,
+        content: randomResponse,
         role: "assistant",
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botMessage]);
-      
-    } catch (error) {
-      console.error('Erro no chat:', error);
-      
-      // Fallback em caso de erro
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: "Ops! 🤖 Estou com um probleminha técnico. Que tal tentar novamente? Adoro falar sobre Python!",
-        role: "assistant",
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
       setIsTyping(false);
-    }
+    }, 1500);
   };
 
   return (
