@@ -14,26 +14,189 @@ export type Database = {
   }
   public: {
     Tables: {
-      profiles: {
+      exercises: {
         Row: {
-          birth_date: string
+          content: Json | null
           created_at: string | null
-          full_name: string
+          description: string | null
+          difficulty: string | null
           id: string
+          points: number | null
+          title: string
         }
         Insert: {
-          birth_date: string
+          content?: Json | null
           created_at?: string | null
-          full_name: string
-          id: string
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          points?: number | null
+          title: string
         }
         Update: {
-          birth_date?: string
+          content?: Json | null
           created_at?: string | null
-          full_name?: string
+          description?: string | null
+          difficulty?: string | null
           id?: string
+          points?: number | null
+          title?: string
         }
         Relationships: []
+      }
+      library_items: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          difficulty: string | null
+          id: string
+          thumbnail_url: string | null
+          title: string
+          type: string
+          url: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title: string
+          type: string
+          url?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          difficulty?: string | null
+          id?: string
+          thumbnail_url?: string | null
+          title?: string
+          type?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar: string | null
+          birth_date: string | null
+          created_at: string | null
+          current_streak: number | null
+          exercises_completed: number | null
+          full_name: string
+          id: string
+          lessons_completed: number | null
+          level: string | null
+          points: number | null
+          school_grade: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          current_streak?: number | null
+          exercises_completed?: number | null
+          full_name?: string
+          id: string
+          lessons_completed?: number | null
+          level?: string | null
+          points?: number | null
+          school_grade?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          current_streak?: number | null
+          exercises_completed?: number | null
+          full_name?: string
+          id?: string
+          lessons_completed?: number | null
+          level?: string | null
+          points?: number | null
+          school_grade?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_exercise_answers: {
+        Row: {
+          answer: string | null
+          completed_at: string | null
+          exercise_id: string
+          id: string
+          is_correct: boolean | null
+          points_earned: number | null
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          completed_at?: string | null
+          exercise_id: string
+          id?: string
+          is_correct?: boolean | null
+          points_earned?: number | null
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          completed_at?: string | null
+          exercise_id?: string
+          id?: string
+          is_correct?: boolean | null
+          points_earned?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_exercise_answers_exercise_id_fkey"
+            columns: ["exercise_id"]
+            isOneToOne: false
+            referencedRelation: "exercises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_library_progress: {
+        Row: {
+          completed: boolean | null
+          id: string
+          last_accessed: string | null
+          library_item_id: string
+          progress_percentage: number | null
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean | null
+          id?: string
+          last_accessed?: string | null
+          library_item_id: string
+          progress_percentage?: number | null
+          user_id: string
+        }
+        Update: {
+          completed?: boolean | null
+          id?: string
+          last_accessed?: string | null
+          library_item_id?: string
+          progress_percentage?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_library_progress_library_item_id_fkey"
+            columns: ["library_item_id"]
+            isOneToOne: false
+            referencedRelation: "library_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
