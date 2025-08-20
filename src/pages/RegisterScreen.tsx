@@ -1,17 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, Calendar, GraduationCap, Code } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Calendar, GraduationCap, Code, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function RegisterScreen() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signUp, user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -20,14 +23,41 @@ export default function RegisterScreen() {
     grade: ""
   });
 
-  const handleRegister = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulação de cadastro - em produção, conectar com Supabase
-    toast({
-      title: "Cadastro realizado!",
-      description: "Bem-vindo ao PyKids!",
-    });
-    navigate("/dashboard");
+    setIsLoading(true);
+
+    const userData = {
+      full_name: formData.name,
+      birth_date: formData.birthDate,
+      school_grade: formData.grade,
+    };
+
+    const { error } = await signUp(formData.email, formData.password, userData);
+
+    if (error) {
+      toast({
+        title: "Erro no cadastro",
+        description: error.message === "User already registered" 
+          ? "Este email já está cadastrado" 
+          : "Erro ao criar conta. Tente novamente.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Cadastro realizado!",
+        description: "Bem-vindo ao PyKids! Verifique seu email para confirmar sua conta.",
+      });
+      navigate("/dashboard");
+    }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -138,8 +168,19 @@ export default function RegisterScreen() {
               </Select>
             </div>
 
-            <Button type="submit" className="w-full bg-gradient-secondary text-white font-semibold">
-              Criar Conta
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-secondary text-white font-semibold"
+              disabled={isLoading || !formData.grade}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Criando conta...
+                </>
+              ) : (
+                "Criar Conta"
+              )}
             </Button>
           </form>
 

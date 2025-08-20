@@ -1,281 +1,198 @@
-import { useState } from "react";
-import { Book, Play, Download, Star, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Book, Video, ExternalLink, Search, Filter, BookOpen } from "lucide-react";
 import { AnimatedCard } from "@/components/ui/animated-card";
-import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
-interface Resource {
+interface LibraryItem {
   id: string;
   title: string;
-  type: "book" | "video";
   description: string;
-  rating: number;
-  duration?: string;
-  difficulty: "Iniciante" | "Intermediário" | "Avançado";
-  thumbnail: string;
+  type: 'book' | 'video';
+  url: string;
+  category: string;
+  difficulty: string;
+  thumbnail_url?: string;
 }
 
-const logicConcepts = [
-  { title: "Variáveis", description: "Guardando informações", icon: "📦" },
-  { title: "Condicionais", description: "Tomando decisões", icon: "🤔" },
-  { title: "Loops", description: "Repetindo ações", icon: "🔄" },
-  { title: "Funções", description: "Organizando código", icon: "⚙️" },
-  { title: "Listas", description: "Coleções de dados", icon: "📋" },
-  { title: "Dicionários", description: "Dados estruturados", icon: "📖" },
-  { title: "Classes", description: "Programação orientada", icon: "🏗️" },
-  { title: "Módulos", description: "Reutilizando código", icon: "📚" },
-  { title: "Debugging", description: "Encontrando erros", icon: "🐛" },
-  { title: "Algoritmos", description: "Resolvendo problemas", icon: "🧩" }
-];
-
 export default function EbooksScreen() {
-  const [currentPage, setCurrentPage] = useState(0);
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const [items, setItems] = useState<LibraryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState<string>("all");
+  const [filterDifficulty, setFilterDifficulty] = useState<string>("all");
 
-  const resources: Resource[] = [
-    {
-      id: "1",
-      title: "Python para Crianças",
-      type: "book",
-      description: "Introdução divertida ao Python com exemplos práticos",
-      rating: 4.8,
-      difficulty: "Iniciante",
-      thumbnail: "📘"
-    },
-    {
-      id: "2",
-      title: "Jogos com Python",
-      type: "video",
-      description: "Aprenda criando jogos incríveis",
-      rating: 4.9,
-      duration: "45 min",
-      difficulty: "Intermediário",
-      thumbnail: "🎮"
-    },
-    {
-      id: "3",
-      title: "Lógica de Programação",
-      type: "book",
-      description: "Fundamentos essenciais da programação",
-      rating: 4.7,
-      difficulty: "Iniciante",
-      thumbnail: "🧠"
-    },
-    {
-      id: "4",
-      title: "Projetos Divertidos",
-      type: "video",
-      description: "Construa projetos reais com Python",
-      rating: 4.9,
-      duration: "60 min",
-      difficulty: "Intermediário",
-      thumbnail: "🚀"
-    },
-    {
-      id: "5",
-      title: "Python Avançado",
-      type: "book",
-      description: "Técnicas avançadas e boas práticas",
-      rating: 4.6,
-      difficulty: "Avançado",
-      thumbnail: "🔥"
-    },
-    {
-      id: "6",
-      title: "Web com Python",
-      type: "video",
-      description: "Criando sites com Python",
-      rating: 4.8,
-      duration: "90 min",
-      difficulty: "Avançado",
-      thumbnail: "🌐"
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login");
+    } else if (user) {
+      fetchLibraryItems();
     }
-  ];
+  }, [user, authLoading, navigate]);
 
-  const itemsPerPage = 4;
-  const totalPages = Math.ceil(resources.length / itemsPerPage);
-  const currentResources = resources.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
-  );
+  const fetchLibraryItems = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('library_items')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const nextCarousel = () => {
-    setCarouselIndex((prev) => (prev + 1) % logicConcepts.length);
-  };
-
-  const prevCarousel = () => {
-    setCarouselIndex((prev) => (prev - 1 + logicConcepts.length) % logicConcepts.length);
-  };
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case "Iniciante": return "bg-success/20 text-success";
-      case "Intermediário": return "bg-warning/20 text-warning";
-      case "Avançado": return "bg-destructive/20 text-destructive";
-      default: return "bg-muted/20 text-muted-foreground";
+      if (error) throw error;
+      setItems(data || []);
+    } catch (error) {
+      console.error('Error fetching library items:', error);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === "all" || item.type === filterType;
+    const matchesDifficulty = filterDifficulty === "all" || item.difficulty === filterDifficulty;
+    
+    return matchesSearch && matchesType && matchesDifficulty;
+  });
+
+  const handleItemClick = async (item: LibraryItem) => {
+    try {
+      await supabase
+        .from('user_library_progress')
+        .upsert({
+          user_id: user?.id,
+          library_item_id: item.id,
+          last_accessed: new Date().toISOString()
+        });
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    }
+
+    window.open(item.url, '_blank');
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <BookOpen size={32} className="text-primary" />
+          </div>
+          <p className="text-muted-foreground">Carregando biblioteca...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-bg">
-      {/* Header */}
-      <div className="bg-gradient-secondary p-6">
-        <div className="text-center text-white">
-          <h1 className="text-3xl font-bold mb-2">📚 Biblioteca Digital</h1>
-          <p className="text-white/90">Explore recursos educacionais incríveis!</p>
+    <div className="min-h-screen bg-gradient-bg p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground mb-2">📚 Biblioteca PyKids</h1>
+        <p className="text-muted-foreground">Explore nossos recursos de aprendizado</p>
+      </div>
+
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por título ou descrição..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-full md:w-48">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="book">📖 Livros</SelectItem>
+              <SelectItem value="video">🎥 Vídeos</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterDifficulty} onValueChange={setFilterDifficulty}>
+            <SelectTrigger className="w-full md:w-48">
+              <SelectValue placeholder="Dificuldade" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="Iniciante">Iniciante</SelectItem>
+              <SelectItem value="Intermediário">Intermediário</SelectItem>
+              <SelectItem value="Avançado">Avançado</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="p-6 space-y-8">
-        {/* Carrossel de Conceitos */}
-        <section>
-          <h2 className="text-xl font-bold text-foreground mb-4">🧩 Conceitos de Lógica</h2>
-          <div className="relative">
-            <AnimatedCard className="bg-gradient-primary text-primary-foreground">
-              <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={prevCarousel}
-                  className="text-primary-foreground hover:bg-white/20"
-                >
-                  <ChevronLeft size={20} />
-                </Button>
-                
-                <div className="text-center flex-1">
-                  <div className="text-4xl mb-2">{logicConcepts[carouselIndex].icon}</div>
-                  <h3 className="text-lg font-bold">{logicConcepts[carouselIndex].title}</h3>
-                  <p className="text-primary-foreground/80 text-sm">
-                    {logicConcepts[carouselIndex].description}
-                  </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredItems.map((item) => (
+          <AnimatedCard 
+            key={item.id} 
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={() => handleItemClick(item)}
+          >
+            <div className="space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-2">
+                  {item.type === 'book' ? (
+                    <Book className="w-5 h-5 text-primary" />
+                  ) : (
+                    <Video className="w-5 h-5 text-secondary" />
+                  )}
+                  <Badge variant={item.type === 'book' ? 'default' : 'secondary'}>
+                    {item.type === 'book' ? '📖 Livro' : '🎥 Vídeo'}
+                  </Badge>
                 </div>
-                
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={nextCarousel}
-                  className="text-primary-foreground hover:bg-white/20"
-                >
-                  <ChevronRight size={20} />
-                </Button>
+                <Badge variant="outline">{item.difficulty}</Badge>
               </div>
-              
-              <div className="flex justify-center mt-4 space-x-1">
-                {logicConcepts.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`w-2 h-2 rounded-full transition-all ${
-                      index === carouselIndex ? "bg-white" : "bg-white/40"
-                    }`}
-                  />
-                ))}
-              </div>
-            </AnimatedCard>
-          </div>
-        </section>
 
-        {/* Grid de Recursos */}
-        <section>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-foreground">📖 Recursos Educacionais</h2>
-            <div className="flex space-x-2">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <Button
-                  key={i}
-                  variant={currentPage === i ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setCurrentPage(i)}
-                  className="w-8 h-8 p-0"
-                >
-                  {i + 1}
-                </Button>
-              ))}
+              <div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">{item.title}</h3>
+                <p className="text-sm text-muted-foreground mb-3">{item.description}</p>
+                
+                {item.category && (
+                  <Badge variant="secondary" className="mb-3">
+                    {item.category}
+                  </Badge>
+                )}
+              </div>
+
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {item.type === 'book' ? 'Ler agora' : 'Assistir agora'}
+              </Button>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {currentResources.map((resource) => (
-              <AnimatedCard key={resource.id} className="cursor-pointer">
-                <div className="flex space-x-4">
-                  <div className="text-6xl flex-shrink-0">{resource.thumbnail}</div>
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <h3 className="font-bold text-foreground">{resource.title}</h3>
-                      <div className="flex items-center space-x-1">
-                        {resource.type === "book" ? <Book size={16} /> : <Play size={16} />}
-                      </div>
-                    </div>
-                    
-                    <p className="text-sm text-muted-foreground">{resource.description}</p>
-                    
-                    <div className="flex items-center space-x-2">
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-warning fill-current" />
-                        <span className="text-sm font-medium">{resource.rating}</span>
-                      </div>
-                      
-                      {resource.duration && (
-                        <Badge variant="outline" className="text-xs">
-                          {resource.duration}
-                        </Badge>
-                      )}
-                      
-                      <Badge className={`text-xs ${getDifficultyColor(resource.difficulty)}`}>
-                        {resource.difficulty}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex space-x-2 pt-2">
-                      <Button size="sm" className="bg-gradient-primary text-white">
-                        {resource.type === "book" ? (
-                          <>
-                            <Book className="w-4 h-4 mr-1" />
-                            Ler
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 mr-1" />
-                            Assistir
-                          </>
-                        )}
-                      </Button>
-                      
-                      <Button size="sm" variant="outline">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </AnimatedCard>
-            ))}
-          </div>
-        </section>
-
-        {/* Navegação de páginas */}
-        <div className="flex justify-center space-x-2">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-            disabled={currentPage === 0}
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Anterior
-          </Button>
-          
-          <span className="flex items-center px-4 text-sm text-muted-foreground">
-            Página {currentPage + 1} de {totalPages}
-          </span>
-          
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
-            disabled={currentPage === totalPages - 1}
-          >
-            Próxima
-            <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </div>
+          </AnimatedCard>
+        ))}
       </div>
+
+      {filteredItems.length === 0 && (
+        <div className="text-center py-12">
+          <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">Nenhum item encontrado</h3>
+          <p className="text-muted-foreground">
+            {searchTerm || filterType !== "all" || filterDifficulty !== "all" 
+              ? "Tente ajustar os filtros de busca" 
+              : "Ainda não há itens na biblioteca"}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

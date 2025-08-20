@@ -1,29 +1,53 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, Code } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, Code, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AnimatedCard } from "@/components/ui/animated-card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginScreen() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signIn, user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user && !loading) {
+      navigate("/dashboard");
+    }
+  }, [user, loading, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulação de login - em produção, conectar com Supabase
-    toast({
-      title: "Login realizado!",
-      description: "Bem-vindo ao PyKids!",
-    });
-    navigate("/dashboard");
+    setIsLoading(true);
+
+    const { error } = await signIn(formData.email, formData.password);
+
+    if (error) {
+      toast({
+        title: "Erro no login",
+        description: error.message === "Invalid login credentials" 
+          ? "Email ou senha incorretos" 
+          : "Erro ao fazer login. Tente novamente.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login realizado!",
+        description: "Bem-vindo ao PyKids!",
+      });
+      navigate("/dashboard");
+    }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -82,8 +106,19 @@ export default function LoginScreen() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full bg-gradient-primary text-white font-semibold">
-              Entrar
+            <Button 
+              type="submit" 
+              className="w-full bg-gradient-primary text-white font-semibold"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                "Entrar"
+              )}
             </Button>
           </form>
 

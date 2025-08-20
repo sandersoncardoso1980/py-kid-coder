@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, Sparkles } from "lucide-react";
+import { Send, Bot, User, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AnimatedCard } from "@/components/ui/animated-card";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import professorImage from "@/assets/professor-sandero.jpg";
 
 interface Message {
@@ -13,10 +15,11 @@ interface Message {
 }
 
 export default function ChatScreen() {
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "Olá! Eu sou o Professor Sandero! 🤖 Estou aqui para te ajudar a aprender Python de forma divertida! O que você gostaria de saber sobre programação?",
+      content: "Olá! Eu sou o Professor PyKids! 🐍✨ Estou aqui para te ajudar a aprender Python de forma super divertida! Que tal começarmos? O que você gostaria de descobrir sobre programação?",
       role: "assistant",
       timestamp: new Date()
     }
@@ -33,7 +36,7 @@ export default function ChatScreen() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || isTyping) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -46,28 +49,39 @@ export default function ChatScreen() {
     setInputMessage("");
     setIsTyping(true);
 
-    // Simulação de resposta do Professor Sandero
-    setTimeout(() => {
-      const responses = [
-        "Que pergunta interessante! 🐍 Em Python, você pode usar a função print() para mostrar mensagens na tela. Por exemplo: print('Olá, mundo!')",
-        "Ótima dúvida! Python é uma linguagem muito amigável para iniciantes. Vamos começar com variáveis: nome = 'João' cria uma variável chamada nome!",
-        "Excelente! Os loops são muito úteis em Python. O loop 'for' nos ajuda a repetir ações. Exemplo: for i in range(5): print(i)",
-        "Muito bem! As listas em Python são como caixas que guardam vários itens. Exemplo: frutas = ['maçã', 'banana', 'laranja']",
-        "Python é divertido! 🎉 Que tal criarmos um pequeno jogo? Podemos fazer um programa que adivinha números!"
-      ];
+    try {
+      const { data, error } = await supabase.functions.invoke('professor-pykids', {
+        body: { message: inputMessage }
+      });
 
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
+      if (error) throw error;
+
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: randomResponse,
+        content: data.response,
         role: "assistant",
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error calling professor:', error);
+      toast({
+        title: "Erro de conexão",
+        description: "Não consegui falar com o Professor PyKids. Tente novamente!",
+        variant: "destructive",
+      });
+      
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: "Opa! Parece que estou com problemas técnicos. Tente me fazer outra pergunta! 🤖✨",
+        role: "assistant",
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -79,8 +93,8 @@ export default function ChatScreen() {
             <img src={professorImage} alt="Professor Sandero" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">Professor Sandero</h1>
-            <p className="text-white/80 text-sm">Seu tutor de Python 🐍</p>
+            <h1 className="text-xl font-bold text-white">Professor PyKids</h1>
+            <p className="text-white/80 text-sm">Seu tutor de Python 🐍✨</p>
           </div>
           <Sparkles className="ml-auto text-warning animate-pulse" size={24} />
         </div>
@@ -130,10 +144,9 @@ export default function ChatScreen() {
                 <Bot size={16} />
               </div>
               <AnimatedCard className="bg-card">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Professor PyKids está pensando...</span>
                 </div>
               </AnimatedCard>
             </div>
@@ -162,7 +175,7 @@ export default function ChatScreen() {
           </Button>
         </form>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          ⚡ Professor Sandero responde apenas sobre Python e programação
+          ⚡ Professor PyKids responde apenas sobre Python e programação
         </p>
       </div>
     </div>
