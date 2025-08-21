@@ -45,7 +45,10 @@ export default function EbooksScreen() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setItems(data || []);
+      setItems((data || []).map(item => ({
+        ...item,
+        type: item.type as 'book' | 'video'
+      })));
     } catch (error) {
       console.error('Error fetching library items:', error);
     } finally {

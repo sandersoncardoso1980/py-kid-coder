@@ -19,8 +19,8 @@ export function BottomNavigation() {
   if (isAuthPage) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50">
-      <div className="flex items-center justify-around py-2">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border shadow-lg z-50 pb-safe-area-inset-bottom">
+      <div className="flex items-center justify-around py-3 px-2">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.path;

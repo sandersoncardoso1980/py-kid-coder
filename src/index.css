@@ -73,6 +73,9 @@ All colors MUST be HSL for proper theming
 
     --radius: 1rem;
 
+    /* Safe area insets for mobile navigation */
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+
     --sidebar-background: 0 0% 98%;
 
     --sidebar-foreground: 240 5.3% 26.1%;
